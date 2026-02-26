@@ -1,4 +1,10 @@
 package com.bagygo.bagygo_backend.enums;
 
-public class RequestStatus {
+public enum RequestStatus {
+    PENDING,
+    ACCEPTED,
+    IN_TRANSIT,
+    DELIVERED,
+    CANCELLED
 }
+

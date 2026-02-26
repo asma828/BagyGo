@@ -1,4 +1,7 @@
 package com.bagygo.bagygo_backend.enums;
 
-public class Role {
+public enum UserRole {
+    EXPEDITEUR,
+    TRANSPORTEUR
 }
+

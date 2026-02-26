@@ -1,4 +1,17 @@
 package com.bagygo.bagygo_backend.dto.response;
 
-public class OfferResponse {
+import lombok.*;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class TransportOfferResponse {
+
+    private Long id;
+    private Double proposedPrice;
+    private String status;
+    private String transporteurName;
 }
+
