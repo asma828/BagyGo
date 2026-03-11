@@ -1,27 +1,17 @@
 package com.bagygo.bagygo_backend.dto.request;
 
 import jakarta.validation.constraints.*;
-import lombok.*;
+import lombok.Data;
+
+import java.time.LocalDate;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
 public class CreateBaggageRequestRequest {
-
-    @NotBlank
-    private String description;
-
-    @NotNull
-    private Double weight;
-
-    @NotNull
-    private Double proposedPrice;
-
-    @NotBlank
-    private String departureCity;
-
-    @NotBlank
-    private String arrivalCity;
+    @NotBlank private String departureCity;
+    @NotBlank private String arrivalCity;
+    @NotNull  @Future  private LocalDate desiredDate;
+    @NotNull  @Positive private Double weightKg;
+    @NotBlank private String description;
+    @NotNull  @Positive private Double proposedPrice;
+    private Boolean isFragile = false;
 }
-

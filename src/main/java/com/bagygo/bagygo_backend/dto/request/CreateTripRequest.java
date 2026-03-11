@@ -1,23 +1,17 @@
-package com.bagygo.bagygo_backend.dto.request;
+        package com.bagygo.bagygo_backend.dto.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.*;
+        import lombok.Data;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
 public class CreateTripRequest {
-
-    private String departureCity;
-    private String arrivalCity;
-    private LocalDateTime departureDate;
-    private Double availableWeight;
-
-
+    @NotBlank  private String departureCity;
+    @NotBlank  private String arrivalCity;
+    @NotNull   @Future  private LocalDateTime departureDate;
+    private LocalDateTime estimatedArrival;
+    @NotNull   @Positive private Double availableSpace;
+    @NotNull   @Positive private Double pricePerKg;
+    private String notes;
 }

@@ -1,30 +1,33 @@
 package com.bagygo.bagygo_backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
+@Table(name = "ratings")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Rating {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Integer score;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "from_user_id", nullable = false)
+    private User fromUser;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "to_user_id", nullable = false)
+    private User toUser;
+
+    @Column(nullable = false)
+    private Integer score;   // 1–5
+
     private String comment;
 
-    private LocalDateTime createdAt;
-
-    @ManyToOne
-    private User user;
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 }
-

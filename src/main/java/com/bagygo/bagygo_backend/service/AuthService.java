@@ -5,6 +5,7 @@ import com.bagygo.bagygo_backend.dto.request.RegisterRequest;
 import com.bagygo.bagygo_backend.dto.response.AuthResponse;
 import com.bagygo.bagygo_backend.entity.Role;
 import com.bagygo.bagygo_backend.entity.User;
+import com.bagygo.bagygo_backend.enums.UserRole;
 import com.bagygo.bagygo_backend.repository.RoleRepository;
 import com.bagygo.bagygo_backend.repository.UserRepository;
 import com.bagygo.bagygo_backend.security.JwtUtil;
@@ -42,10 +43,8 @@ public class AuthService {
         }
 
         // Find or create the role
-        Role role = roleRepository.findByName(request.getRole())
-                .orElseThrow(() -> new RuntimeException("Role not found: " + request.getRole()));
+        UserRole role = request.getRole();
 
-        // Create user
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
@@ -67,7 +66,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
-                .role(role.getName())
+                .role(user.getRole())
                 .message("User registered successfully")
                 .build();
     }
@@ -89,8 +88,13 @@ public class AuthService {
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
-                .role(user.getRole().getName())
+                .role(user.getRole())
                 .message("Login successful")
                 .build();
+    }
+
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

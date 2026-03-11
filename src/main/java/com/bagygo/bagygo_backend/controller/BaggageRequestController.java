@@ -1,53 +1,53 @@
 package com.bagygo.bagygo_backend.controller;
 
 import com.bagygo.bagygo_backend.dto.request.CreateBaggageRequestRequest;
-import com.bagygo.bagygo_backend.dto.response.BaggageRequestDetailsResponse;
 import com.bagygo.bagygo_backend.dto.response.BaggageRequestResponse;
+import com.bagygo.bagygo_backend.entity.User;
+import com.bagygo.bagygo_backend.security.CustomUserDetails;
 import com.bagygo.bagygo_backend.service.BaggageRequestService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/baggage-requests")
+@RequestMapping("/api/requests")
+@RequiredArgsConstructor
 public class BaggageRequestController {
 
     private final BaggageRequestService service;
 
-    public BaggageRequestController(BaggageRequestService service) {
-        this.service = service;
-    }
-
-    @PreAuthorize("hasRole('EXPEDITEUR')")
     @PostMapping
     public ResponseEntity<BaggageRequestResponse> create(
-            @Valid @RequestBody CreateBaggageRequestRequest request,
-            Authentication authentication
-    ) {
-        String email = authentication.getName();
-        return ResponseEntity.ok(service.create(request, email));
+            @Valid @RequestBody CreateBaggageRequestRequest req,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+
+        User sender = principal.getUser();
+        return ResponseEntity.ok(service.create(req, sender));
     }
 
     @GetMapping("/my")
-    @PreAuthorize("hasRole('EXPEDITEUR')")
-    public List<BaggageRequestResponse> getMyRequests(Authentication authentication) {
+    public ResponseEntity<List<BaggageRequestResponse>> getMine(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(service.getMySenderRequests(user));
+    }
 
-        String email = authentication.getName();
-        return service.getMyRequests(email);
+    @GetMapping("/open")
+    public ResponseEntity<List<BaggageRequestResponse>> getOpen() {
+        return ResponseEntity.ok(service.getOpenRequests());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('EXPEDITEUR')")
-    public BaggageRequestDetailsResponse getDetails(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
-        return service.getDetails(id, authentication.getName());
+    public ResponseEntity<BaggageRequestResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getById(id));
     }
 
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<BaggageRequestResponse> cancel(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(service.cancel(id, user));
+    }
 }
-

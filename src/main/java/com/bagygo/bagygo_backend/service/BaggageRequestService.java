@@ -1,111 +1,62 @@
 package com.bagygo.bagygo_backend.service;
 
 import com.bagygo.bagygo_backend.dto.request.CreateBaggageRequestRequest;
-import com.bagygo.bagygo_backend.dto.response.BaggageRequestDetailsResponse;
 import com.bagygo.bagygo_backend.dto.response.BaggageRequestResponse;
-import com.bagygo.bagygo_backend.dto.response.TransportOfferResponse;
 import com.bagygo.bagygo_backend.entity.BaggageRequest;
-import com.bagygo.bagygo_backend.entity.TransportOffer;
 import com.bagygo.bagygo_backend.entity.User;
+import com.bagygo.bagygo_backend.enums.RequestStatus;
 import com.bagygo.bagygo_backend.repository.BaggageRequestRepository;
-import com.bagygo.bagygo_backend.repository.TransportOfferRepository;
-import com.bagygo.bagygo_backend.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class BaggageRequestService {
 
-    private final BaggageRequestRepository baggageRequestRepository;
-    private final TransportOfferRepository transportOfferRepository;
-    private final UserRepository userRepository;
+    private final BaggageRequestRepository repository;
 
-    public BaggageRequestService(
-            BaggageRequestRepository baggageRequestRepository,
-            TransportOfferRepository transportOfferRepository,
-            UserRepository userRepository
-    ) {
-        this.baggageRequestRepository = baggageRequestRepository;
-        this.transportOfferRepository = transportOfferRepository;
-        this.userRepository = userRepository;
+    public BaggageRequestResponse create(CreateBaggageRequestRequest req, User sender) {
+        BaggageRequest br = BaggageRequest.builder()
+                .sender(sender)
+                .departureCity(req.getDepartureCity())
+                .arrivalCity(req.getArrivalCity())
+                .desiredDate(req.getDesiredDate())
+                .weightKg(req.getWeightKg())
+                .description(req.getDescription())
+                .proposedPrice(req.getProposedPrice())
+                .isFragile(req.getIsFragile() != null && req.getIsFragile())
+                .build();
+
+        return BaggageRequestResponse.from(repository.save(br));
     }
 
-    public BaggageRequestDetailsResponse getDetails(Long requestId, String email) {
+    public List<BaggageRequestResponse> getMySenderRequests(User sender) {
+        return repository.findBySenderOrderByCreatedAtDesc(sender)
+                .stream().map(BaggageRequestResponse::from).toList();
+    }
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public List<BaggageRequestResponse> getOpenRequests() {
+        return repository.findByStatusOrderByCreatedAtDesc(RequestStatus.OPEN)
+                .stream().map(BaggageRequestResponse::from).toList();
+    }
 
-        BaggageRequest request = baggageRequestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("BaggageRequest not found"));
+    public BaggageRequestResponse getById(Long id) {
+        return BaggageRequestResponse.from(findOrThrow(id));
+    }
 
-        if (!request.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Access denied");
+    public BaggageRequestResponse cancel(Long id, User sender) {
+        BaggageRequest br = findOrThrow(id);
+        if (!br.getSender().getId().equals(sender.getId())) {
+            throw new IllegalArgumentException("Not your request");
         }
-
-        List<TransportOffer> offers =
-                transportOfferRepository.findByBaggageRequest(request);
-
-        List<TransportOfferResponse> offerResponses = offers.stream()
-                .map(offer -> new TransportOfferResponse(
-                        offer.getId(),
-                        offer.getProposedPrice(),
-                        offer.getStatus().name(),
-                        offer.getUser().getFirstName()
-                ))
-                .collect(Collectors.toList());
-
-        return new BaggageRequestDetailsResponse(
-                request.getId(),
-                request.getDescription(),
-                request.getWeight(),
-                request.getProposedPrice(),
-                request.getStatus().name(),
-                request.getCreatedAt(),
-                offerResponses
-        );
+        br.setStatus(RequestStatus.CANCELLED);
+        return BaggageRequestResponse.from(repository.save(br));
     }
 
-    public BaggageRequestResponse create(CreateBaggageRequestRequest request, String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        BaggageRequest baggageRequest = new BaggageRequest();
-        baggageRequest.setDescription(request.getDescription());
-        baggageRequest.setWeight(request.getWeight());
-        baggageRequest.setProposedPrice(request.getProposedPrice());
-        baggageRequest.setUser(user);
-
-        BaggageRequest saved = baggageRequestRepository.save(baggageRequest);
-
-        return new BaggageRequestResponse(
-                saved.getId(),
-                saved.getDescription(),
-                saved.getWeight(),
-                saved.getProposedPrice(),
-                saved.getStatus().name(),
-                saved.getCreatedAt()
-        );
+    public BaggageRequest findOrThrow(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("BaggageRequest not found: " + id));
     }
-
-    public List<BaggageRequestResponse> getMyRequests(String email) {
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return baggageRequestRepository.findByUser(user)
-                .stream()
-                .map(request -> new BaggageRequestResponse(
-                        request.getId(),
-                        request.getDescription(),
-                        request.getWeight(),
-                        request.getProposedPrice(),
-                        request.getStatus().name(),
-                        request.getCreatedAt()
-                ))
-                .collect(Collectors.toList());
-    }
-
-
 }

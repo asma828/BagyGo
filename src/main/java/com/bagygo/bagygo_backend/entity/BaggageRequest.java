@@ -2,41 +2,60 @@ package com.bagygo.bagygo_backend.entity;
 
 import com.bagygo.bagygo_backend.enums.RequestStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
-@Builder
+@Table(name = "baggage_requests")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class BaggageRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_id", nullable = false)
+    private User sender;
+
+    @Column(nullable = false)
+    private String departureCity;
+
+    @Column(nullable = false)
+    private String arrivalCity;
+
+    @Column(nullable = false)
+    private LocalDate desiredDate;
+
+    @Column(nullable = false)
+    private Double weightKg;
+
+    @Column(nullable = false)
     private String description;
-    private Double weight;
+
+    @Column(nullable = false)
     private Double proposedPrice;
 
     @Enumerated(EnumType.STRING)
-    private RequestStatus status = RequestStatus.PENDING;
+    @Column(nullable = false)
+    @Builder.Default
+    private RequestStatus status = RequestStatus.OPEN;
 
-    private LocalDateTime createdAt;
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isFragile = false;
 
-    @ManyToOne
-    private User user;
+    private String imageUrl;
 
-    @OneToMany(mappedBy = "baggageRequest")
-    private List<TransportOffer> offers;
+    @OneToMany(mappedBy = "baggageRequest", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<TransportOffer> offers = new ArrayList<>();
 
-
-
+    @Column(nullable = false, updatable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 }
-

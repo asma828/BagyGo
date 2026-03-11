@@ -34,7 +34,7 @@ public class TripService {
         trip.setDepartureCity(request.getDepartureCity());
         trip.setArrivalCity(request.getArrivalCity());
         trip.setDepartureDate(request.getDepartureDate());
-        trip.setAvailableWeight(request.getAvailableWeight());
+        trip.setAvailableSpace(request.getAvailableSpace());
 //        trip.setUser(transporteur);
 
         Trip saved = tripRepository.save(trip);
@@ -47,19 +47,13 @@ public class TripService {
         User transporteur = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return tripRepository.findByUser(transporteur)
+        return tripRepository.findByTransporterOrderByDepartureDateDesc(transporteur)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     private TripResponse mapToResponse(Trip trip) {
-        return new TripResponse(
-                trip.getId(),
-                trip.getDepartureCity(),
-                trip.getArrivalCity(),
-                trip.getDepartureDate(),
-                trip.getAvailableWeight()
-        );
+        return TripResponse.from(trip);
     }
 }

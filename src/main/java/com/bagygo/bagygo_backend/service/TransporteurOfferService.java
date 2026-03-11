@@ -61,12 +61,7 @@ public class TransporteurOfferService {
 
         TransportOffer saved = transportOfferRepository.save(offer);
 
-        return new TransportOfferResponse(
-                saved.getId(),
-                saved.getProposedPrice(),
-                saved.getStatus().name(),
-                saved.getUser().getFirstName()
-        );
+        return TransportOfferResponse.from(saved);
     }
 
     public void acceptOffer(Long offerId, String email) {
@@ -79,12 +74,12 @@ public class TransporteurOfferService {
 
         BaggageRequest request = offer.getBaggageRequest();
 
-        if (!request.getUser().getId().equals(expeditor.getId())) {
+        if (!request.getSender().getId().equals(expeditor.getId())) {
             throw new RuntimeException("Access denied");
         }
 
         List<TransportOffer> offers =
-                transportOfferRepository.findByBaggageRequest(request);
+                transportOfferRepository.findByBaggageRequestOrderByCreatedAtDesc(request);
 
         for (TransportOffer o : offers) {
             if (o.getId().equals(offerId)) {
@@ -109,13 +104,51 @@ public class TransporteurOfferService {
         TransportOffer offer = transportOfferRepository.findById(offerId)
                 .orElseThrow(() -> new RuntimeException("Offer not found"));
 
-        if (!offer.getBaggageRequest().getUser().getId()
+        if (!offer.getBaggageRequest().getSender().getId()
                 .equals(expeditor.getId())) {
             throw new RuntimeException("Access denied");
         }
 
         offer.setStatus(TransportOfferStatus.REJECTED);
         transportOfferRepository.save(offer);
+    }
+
+    public List<TransportOfferResponse> getOffersForRequest(Long requestId) {
+
+        BaggageRequest request = baggageRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        return transportOfferRepository
+                .findByBaggageRequestOrderByCreatedAtDesc(request)
+                .stream()
+                .map(TransportOfferResponse::from)
+                .toList();
+    }
+
+    public List<TransportOfferResponse> getMyOffers(User user) {
+
+        return transportOfferRepository
+                .findByUserOrderByCreatedAtDesc(user)
+                .stream()
+                .map(TransportOfferResponse::from)
+                .toList();
+    }
+
+    public TransportOfferResponse counterOffer(Long id, Double price, User user) {
+
+        TransportOffer offer = transportOfferRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Offer not found"));
+
+        if (!offer.getBaggageRequest().getSender().getId().equals(user.getId())) {
+            throw new RuntimeException("Access denied");
+        }
+
+        offer.setProposedPrice(price);
+        offer.setStatus(TransportOfferStatus.COUNTERED);
+
+        return TransportOfferResponse.from(
+                transportOfferRepository.save(offer)
+        );
     }
 
 
