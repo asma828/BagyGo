@@ -32,19 +32,14 @@ public class AuthController {
     /**
      * Returns the current authenticated user's profile.
      * Used by the frontend on app reload to re-hydrate user state.
-     * GET /api/auth/me   (requires Bearer token)
+     * GET /api/auth/me (requires Bearer token)
      */
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(
-            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails
-    ) {
-        if (userDetails == null) {
+            @AuthenticationPrincipal(expression = "user") User user) {
+        if (user == null) {
             return ResponseEntity.status(401).build();
         }
-
-        String email = userDetails.getUsername();
-
-        User user = authService.findByEmail(email); // or userService
 
         return ResponseEntity.ok(UserResponse.from(user));
     }
