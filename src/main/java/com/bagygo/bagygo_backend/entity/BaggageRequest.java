@@ -11,7 +11,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "baggage_requests")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class BaggageRequest {
 
     @Id
@@ -54,6 +58,21 @@ public class BaggageRequest {
     @OneToMany(mappedBy = "baggageRequest", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<TransportOffer> offers = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id")
+    private Trip trip;
+
+    private String message;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isPaid = false;
+
+    @Builder.Default
+    private Boolean isDedicatedTrip = false;
+
+    private Long acceptedOfferId;
 
     @Column(nullable = false, updatable = false)
     @Builder.Default
