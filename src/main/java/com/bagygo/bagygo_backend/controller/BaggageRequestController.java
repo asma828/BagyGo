@@ -1,14 +1,14 @@
 package com.bagygo.bagygo_backend.controller;
 
 import com.bagygo.bagygo_backend.dto.request.CreateBaggageRequestRequest;
+import com.bagygo.bagygo_backend.dto.request.RespondToRequestRequest;
 import com.bagygo.bagygo_backend.dto.response.BaggageRequestResponse;
 import com.bagygo.bagygo_backend.entity.User;
-import com.bagygo.bagygo_backend.security.CustomUserDetails;
 import com.bagygo.bagygo_backend.service.BaggageRequestService;
-import jakarta.validation.Valid;
+import com.bagygo.bagygo_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,35 +19,78 @@ import java.util.List;
 public class BaggageRequestController {
 
     private final BaggageRequestService service;
-
-    @PostMapping
-    public ResponseEntity<BaggageRequestResponse> create(
-            @Valid @RequestBody CreateBaggageRequestRequest req,
-            @AuthenticationPrincipal CustomUserDetails principal) {
-
-        User sender = principal.getUser();
-        return ResponseEntity.ok(service.create(req, sender));
-    }
-
-    @GetMapping("/my")
-    public ResponseEntity<List<BaggageRequestResponse>> getMine(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(service.getMySenderRequests(user));
-    }
+    private final UserService userService;
 
     @GetMapping("/open")
-    public ResponseEntity<List<BaggageRequestResponse>> getOpen() {
-        return ResponseEntity.ok(service.getOpenRequests());
+    public List<BaggageRequestResponse> getOpenRequests() {
+        return service.getOpenRequests();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BaggageRequestResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getById(id));
+    public BaggageRequestResponse getById(@PathVariable Long id) {
+        return service.getById(id);
     }
 
-    @PatchMapping("/{id}/cancel")
-    public ResponseEntity<BaggageRequestResponse> cancel(
+    @GetMapping
+    public List<BaggageRequestResponse> getMyRequests(Authentication auth) {
+        User user = userService.getCurrentUser(auth.getName());
+        return service.getMySenderRequests(user);
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('EXPEDITEUR')")
+    public BaggageRequestResponse createRequest(@RequestBody CreateBaggageRequestRequest req, Authentication auth) {
+        User user = userService.getCurrentUser(auth.getName());
+        return service.create(req, user);
+    }
+
+    @GetMapping("/transporter")
+    @PreAuthorize("hasRole('TRANSPORTEUR')")
+    public List<BaggageRequestResponse> getRequestsForTransporter(Authentication auth) {
+        User user = userService.getCurrentUser(auth.getName());
+        return service.getRequestsForTransporter(user);
+    }
+
+    @PostMapping("/{id}/respond")
+    @PreAuthorize("hasRole('TRANSPORTEUR')")
+    public BaggageRequestResponse respondToRequest(
             @PathVariable Long id,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(service.cancel(id, user));
+            @RequestBody RespondToRequestRequest req,
+            Authentication auth) {
+        User user = userService.getCurrentUser(auth.getName());
+        return service.respondToRequest(id, req, user);
+    }
+
+    @PatchMapping("/{id}/accept")
+    public BaggageRequestResponse acceptRequest(
+            @PathVariable Long id,
+            Authentication auth) {
+        User user = userService.getCurrentUser(auth.getName());
+        return service.acceptRequest(id, user);
+    }
+
+    @PatchMapping("/{id}/reject")
+    public BaggageRequestResponse rejectRequest(
+            @PathVariable Long id,
+            Authentication auth) {
+        User user = userService.getCurrentUser(auth.getName());
+        return service.rejectRequest(id, user);
+    }
+
+    @PatchMapping("/{id}/status")
+    public BaggageRequestResponse updateStatus(
+            @PathVariable Long id,
+            @RequestParam com.bagygo.bagygo_backend.enums.RequestStatus status,
+            Authentication auth) {
+        User user = userService.getCurrentUser(auth.getName());
+        return service.updateStatus(id, status, user);
+    }
+
+    @DeleteMapping("/{id}")
+    public BaggageRequestResponse cancelRequest(
+            @PathVariable Long id,
+            Authentication auth) {
+        User user = userService.getCurrentUser(auth.getName());
+        return service.cancel(id, user);
     }
 }
