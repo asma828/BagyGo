@@ -19,8 +19,12 @@ public class BaggageRequestResponse {
     private Double proposedPrice;
     private RequestStatus status;
     private Boolean isFragile;
+    private Boolean isPaid;
+    private Boolean isDedicatedTrip;
     private String imageUrl;
     private int offersCount;
+    private TripResponse trip;
+    private String message;
     private LocalDateTime createdAt;
 
     public static BaggageRequestResponse from(BaggageRequest br) {
@@ -35,9 +39,15 @@ public class BaggageRequestResponse {
         r.setProposedPrice(br.getProposedPrice());
         r.setStatus(br.getStatus());
         r.setIsFragile(br.getIsFragile());
+        r.setIsPaid(br.getIsPaid() != null ? br.getIsPaid() : false);
+        r.setIsDedicatedTrip(br.getIsDedicatedTrip() != null ? br.getIsDedicatedTrip() : false);
         r.setImageUrl(br.getImageUrl());
         r.setOffersCount(br.getOffers() != null ? br.getOffers().size() : 0);
         r.setCreatedAt(br.getCreatedAt());
+        r.setMessage(br.getMessage());
+        if (br.getTrip() != null) {
+            r.setTrip(TripResponse.from(br.getTrip()));
+        }
         return r;
     }
 }
