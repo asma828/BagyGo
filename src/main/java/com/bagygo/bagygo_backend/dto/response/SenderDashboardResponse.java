@@ -11,7 +11,9 @@ public class SenderDashboardResponse {
     private int activeRequests;
     private int offersReceived;
     private int delivered;
+    private int pendingPayments;
     private double avgRating;
     private List<BaggageRequestResponse> activeRequestsList;
+    private List<TripResponse> availableTrips;
     private List<ActivityItemResponse> recentActivity;
 }
