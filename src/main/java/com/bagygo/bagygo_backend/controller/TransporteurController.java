@@ -7,6 +7,7 @@ import com.bagygo.bagygo_backend.service.TransporteurOfferService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,43 +24,57 @@ public class TransporteurController {
     @PostMapping
     public ResponseEntity<TransportOfferResponse> makeOffer(
             @Valid @RequestBody CreateTransportOfferRequest req,
-            @AuthenticationPrincipal User user) {
+            @AuthenticationPrincipal(expression = "user") User user) {
         return ResponseEntity.ok(service.createOffer(req, user.getEmail()));
     }
 
     @GetMapping("/request/{requestId}")
-    public ResponseEntity<List<TransportOfferResponse>> getOffersForRequest(@PathVariable Long requestId) {
+    public ResponseEntity<List<TransportOfferResponse>> getOffersForRequest(@PathVariable("requestId") Long requestId) {
         return ResponseEntity.ok(service.getOffersForRequest(requestId));
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<TransportOfferResponse>> getMyOffers(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(service.getMyOffers(user));
+    public ResponseEntity<List<TransportOfferResponse>> getMyOffers(Authentication authentication) {
+        // We need to pass the user object to getMyOffers, let's update service to take
+        // email or find user there
+        return ResponseEntity.ok(service.getMyOffersByEmail(authentication.getName()));
     }
 
     @PatchMapping("/{id}/accept")
     public ResponseEntity<?> accept(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User user) {
+            @PathVariable("id") Long id,
+            Authentication authentication) {
 
-        service.acceptOffer(id, user.getEmail());
+        service.transporterAcceptOffer(id, authentication.getName());
         return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/{id}/decline")
     public ResponseEntity<?> decline(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User user) {
+            @PathVariable("id") Long id,
+            Authentication authentication) {
 
-        service.rejectOffer(id, user.getEmail());
+        service.transporterRejectOffer(id, authentication.getName());
         return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/{id}/counter")
     public ResponseEntity<TransportOfferResponse> counter(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody Map<String, Double> body,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(service.counterOffer(id, body.get("proposedPrice"), user));
+            Authentication authentication) {
+        return ResponseEntity.ok(service.counterOfferByEmail(id, body.get("proposedPrice"), authentication.getName()));
+    }
+
+    @PatchMapping("/requests/{requestId}/status")
+    public ResponseEntity<?> updateStatus(
+            @PathVariable("requestId") Long requestId,
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+        String statusStr = body.get("status");
+        com.bagygo.bagygo_backend.enums.RequestStatus status = com.bagygo.bagygo_backend.enums.RequestStatus
+                .valueOf(statusStr);
+        service.updateStatus(requestId, status, authentication.getName());
+        return ResponseEntity.ok().build();
     }
 }

@@ -18,18 +18,16 @@ public class OfferDecisionController {
     @PostMapping("/{id}/accept")
     @PreAuthorize("hasRole('EXPEDITEUR')")
     public void acceptOffer(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
+            @PathVariable("id") Long id,
+            Authentication authentication) {
         service.acceptOffer(id, authentication.getName());
     }
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasRole('EXPEDITEUR')")
     public void rejectOffer(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
+            @PathVariable("id") Long id,
+            Authentication authentication) {
         service.rejectOffer(id, authentication.getName());
     }
 }
