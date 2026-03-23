@@ -32,16 +32,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/upload/**", "/api/debug/**").permitAll()
+                        .requestMatchers("/api/trips/search", "/api/trips/open").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/offers/**").hasRole("TRANSPORTEUR")
+                        .requestMatchers("/api/offers/**").hasAnyRole("TRANSPORTEUR", "EXPEDITEUR")
                         .requestMatchers("/api/baggage-requests/**").hasRole("EXPEDITEUR")
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .cors(cors -> cors.configurationSource(request -> {
                     var config = new org.springframework.web.cors.CorsConfiguration();
                     config.setAllowedOrigins(List.of("http://localhost:4200")); // Angular dev server
-                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    config.setAllowedMethods(List.of("GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"));
                     config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
                     return config;
