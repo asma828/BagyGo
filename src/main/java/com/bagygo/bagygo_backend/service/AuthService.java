@@ -3,10 +3,9 @@ package com.bagygo.bagygo_backend.service;
 import com.bagygo.bagygo_backend.dto.request.LoginRequest;
 import com.bagygo.bagygo_backend.dto.request.RegisterRequest;
 import com.bagygo.bagygo_backend.dto.response.AuthResponse;
-import com.bagygo.bagygo_backend.entity.Role;
+import com.bagygo.bagygo_backend.dto.response.UserResponse;
 import com.bagygo.bagygo_backend.entity.User;
 import com.bagygo.bagygo_backend.enums.UserRole;
-import com.bagygo.bagygo_backend.repository.RoleRepository;
 import com.bagygo.bagygo_backend.repository.UserRepository;
 import com.bagygo.bagygo_backend.security.JwtUtil;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,18 +19,15 @@ import java.time.LocalDateTime;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
 
     public AuthService(UserRepository userRepository,
-                       RoleRepository roleRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
                        AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.authenticationManager = authenticationManager;
@@ -53,6 +49,7 @@ public class AuthService {
                 .phone(request.getPhone())
                 .role(role)
                 .rating(0.0)
+                .transportDocumentUrl(request.getTransportDocumentUrl())
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -63,10 +60,7 @@ public class AuthService {
 
         return AuthResponse.builder()
                 .token(token)
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .role(user.getRole())
+                .user(UserResponse.from(user))
                 .message("User registered successfully")
                 .build();
     }
@@ -81,14 +75,21 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Check restrictions for TRANSPORTEUR
+        if (user.getRole() == UserRole.TRANSPORTEUR) {
+            if (Boolean.TRUE.equals(user.getIsBanned())) {
+                throw new RuntimeException("Your account has been banned by the admin.");
+            }
+            if (!Boolean.TRUE.equals(user.getIsVerified())) {
+                throw new RuntimeException("Your account must be verified first.");
+            }
+        }
+
         String token = jwtUtil.generateToken(request.getEmail());
 
         return AuthResponse.builder()
                 .token(token)
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .role(user.getRole())
+                .user(UserResponse.from(user))
                 .message("Login successful")
                 .build();
     }
