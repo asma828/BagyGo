@@ -2,12 +2,15 @@ package com.bagygo.bagygo_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "ratings")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Rating {
 
     @Id
@@ -22,12 +25,16 @@ public class Rating {
     @JoinColumn(name = "to_user_id", nullable = false)
     private User toUser;
 
-    @Column(nullable = false)
-    private Integer score;   // 1–5
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "request_id", nullable = false)
+    private BaggageRequest request;
 
+    @Column(nullable = false)
+    private int score; // 1 to 5
+
+    @Column(columnDefinition = "TEXT")
     private String comment;
 
     @Column(nullable = false, updatable = false)
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 }

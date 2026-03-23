@@ -4,6 +4,7 @@ import com.bagygo.bagygo_backend.entity.Rating;
 import com.bagygo.bagygo_backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,6 +14,8 @@ public interface RatingRepository extends JpaRepository<Rating, Long> {
 
     List<Rating> findByToUserOrderByCreatedAtDesc(User toUser);
 
-    @Query("SELECT AVG(r.score) FROM Rating r WHERE r.toUser = :user")
-    Double findAverageRatingForUser(User user);
+    List<Rating> findByFromUserOrderByCreatedAtDesc(User fromUser);
+
+    @Query("SELECT AVG(r.score) FROM Rating r WHERE r.toUser.id = :userId")
+    Double calculateAverageRatingForUser(@Param("userId") Long userId);
 }
