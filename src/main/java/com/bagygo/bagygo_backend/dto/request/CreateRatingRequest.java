@@ -1,17 +1,19 @@
 package com.bagygo.bagygo_backend.dto.request;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class CreateRatingRequest {
 
-    @NotNull
+    @NotNull(message = "Transporter ID is required")
     private Long toUserId;
 
-    @NotNull @Min(1) @Max(5)
-    private Integer score;
+    @Min(value = 1, message = "Score must be at least 1")
+    @Max(value = 5, message = "Score cannot be more than 5")
+    private int score;
 
-    @Size(max = 400)
     private String comment;
 }
