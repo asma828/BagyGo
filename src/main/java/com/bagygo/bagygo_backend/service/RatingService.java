@@ -3,104 +3,110 @@ package com.bagygo.bagygo_backend.service;
 import com.bagygo.bagygo_backend.dto.request.CreateRatingRequest;
 import com.bagygo.bagygo_backend.dto.response.RatingResponse;
 import com.bagygo.bagygo_backend.dto.response.RatingSummaryResponse;
+import com.bagygo.bagygo_backend.entity.BaggageRequest;
 import com.bagygo.bagygo_backend.entity.Rating;
 import com.bagygo.bagygo_backend.entity.User;
+import com.bagygo.bagygo_backend.enums.NotificationType;
+import com.bagygo.bagygo_backend.enums.RequestStatus;
+import com.bagygo.bagygo_backend.dto.response.UserResponse;
+import com.bagygo.bagygo_backend.repository.BaggageRequestRepository;
 import com.bagygo.bagygo_backend.repository.RatingRepository;
 import com.bagygo.bagygo_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashMap;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class RatingService {
 
     private final RatingRepository ratingRepository;
-    private final UserRepository   userRepository;
+    private final BaggageRequestRepository requestRepository;
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    // ── Submit a rating ───────────────────────────────────
+    public RatingResponse createRating(CreateRatingRequest req, User fromUser) {
+        List<BaggageRequest> requests = requestRepository.findBySenderOrderByCreatedAtDesc(fromUser);
+        BaggageRequest br = requests.stream()
+                .filter(r -> r.getStatus() == RequestStatus.COMPLETED 
+                        && r.getTrip() != null 
+                        && r.getTrip().getTransporter().getId().equals(req.getToUserId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No completed deliveries found with this transporter."));
 
-    @Transactional
-    public RatingResponse create(CreateRatingRequest req, User from) {
-
-        User toUser = userRepository.findById(req.getToUserId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + req.getToUserId()));
-
-        if (from.getId().equals(toUser.getId())) {
-            throw new IllegalArgumentException("You cannot rate yourself.");
-        }
+        User toUser = br.getTrip().getTransporter();
 
         Rating rating = Rating.builder()
-                .fromUser(from)
+                .fromUser(fromUser)
                 .toUser(toUser)
+                .request(br)
                 .score(req.getScore())
                 .comment(req.getComment())
+                .createdAt(LocalDateTime.now())
                 .build();
 
-        ratingRepository.save(rating);
+        Rating saved = ratingRepository.save(rating);
 
-        // Recalculate and persist the recipient's average
-        Double avg = ratingRepository.findAverageRatingForUser(toUser);
-        toUser.setRating(avg != null ? Math.round(avg * 10.0) / 10.0 : 0.0);
+        // Update Transporter metrics
+        Double newAverage = ratingRepository.calculateAverageRatingForUser(toUser.getId());
+        toUser.setRating(newAverage != null ? newAverage : 0.0);
+        toUser.setTotalDeliveries(toUser.getTotalDeliveries() + 1);
         userRepository.save(toUser);
 
-        return RatingResponse.from(rating);
+        // Notify Transporter
+        String msg = String.format("Vous avez reçu une note de %d étoiles de %s pour votre livraison récente.",
+                req.getScore(), fromUser.getFirstName());
+        notificationService.createNotification(toUser, msg, NotificationType.SYSTEM);
+
+        return RatingResponse.from(saved);
     }
 
-    // ── Ratings received by user ──────────────────────────
-
-    public List<RatingResponse> getReceivedByUser(Long userId) {
-        User user = findUserOrThrow(userId);
-        return ratingRepository.findByToUserOrderByCreatedAtDesc(user)
-                .stream().map(RatingResponse::from).toList();
+    public List<RatingResponse> getUserRatings(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return ratingRepository.findByToUserOrderByCreatedAtDesc(user).stream()
+                .map(RatingResponse::from).toList();
     }
 
-    // ── Summary for the current user ─────────────────────
-
-    public RatingSummaryResponse getMySummary(User user) {
-        return buildSummary(user);
-    }
-
-    // ── Summary for any public profile ───────────────────
-
-    public RatingSummaryResponse getSummaryForUser(Long userId) {
-        return buildSummary(findUserOrThrow(userId));
-    }
-
-    // ── Helpers ───────────────────────────────────────────
-
-    private RatingSummaryResponse buildSummary(User user) {
-        List<Rating> all = ratingRepository.findByToUserOrderByCreatedAtDesc(user);
-
-        double avg = all.stream().mapToInt(Rating::getScore).average().orElse(0.0);
-        avg = Math.round(avg * 10.0) / 10.0;
-
-        // Descending star distribution 5 → 1
-        Map<Integer, Long> dist = new LinkedHashMap<>();
-        for (int star = 5; star >= 1; star--) {
-            final int s = star;
-            dist.put(s, all.stream().filter(r -> r.getScore() == s).count());
+    public RatingSummaryResponse getSummary(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow();
+        List<Rating> ratings = ratingRepository.findByToUserOrderByCreatedAtDesc(user);
+        
+        Map<Integer, Long> distribution = new HashMap<>();
+        for (int i = 1; i <= 5; i++) distribution.put(i, 0L);
+        
+        for (Rating r : ratings) {
+            distribution.put(r.getScore(), distribution.getOrDefault(r.getScore(), 0L) + 1);
         }
-
-        List<RatingResponse> recent = all.stream()
+        
+        List<RatingResponse> recent = ratings.stream()
                 .limit(5)
                 .map(RatingResponse::from)
-                .toList();
+                .collect(Collectors.toList());
 
         return RatingSummaryResponse.builder()
-                .average(avg)
-                .total(all.size())
-                .distribution(dist)
+                .average(user.getRating())
+                .total(ratings.size())
+                .distribution(distribution)
                 .recent(recent)
                 .build();
     }
 
-    private User findUserOrThrow(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+    public List<UserResponse> getRatableTransporters(User sender) {
+        List<BaggageRequest> requests = requestRepository.findBySenderOrderByCreatedAtDesc(sender);
+        
+        return requests.stream()
+                .filter(br -> br.getStatus() == RequestStatus.COMPLETED && br.getTrip() != null)
+                .map(br -> br.getTrip().getTransporter())
+                .distinct()
+                .map(UserResponse::from)
+                .collect(Collectors.toList());
     }
 }
