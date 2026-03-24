@@ -66,16 +66,24 @@ Create a MySQL database named `bagygo`:
 CREATE DATABASE bagygo;
 ```
 
-### 2. Configure Environment Variables
-You can set these in your OS environment or create a `.env` file (or modify `application.properties` directly for local testing):
+---
 
-| Variable | Description |
-| :--- | :--- |
-| `SPRING_DATASOURCE_URL` | `jdbc:mysql://localhost:3306/bagygo` |
-| `DB_USERNAME` | Your MySQL username |
-| `DB_PASSWORD` | Your MySQL password |
-| `JWT_SECRET` | Secure key for token generation |
-| `STRIPE_API_KEY` | Your Stripe secret key (sk_test_...) |
+## 🔒 Security & Environment Variables
+
+BagyGo uses environment variables to manage sensitive information. **Never hardcode secret keys in the codebase.**
+
+### Setup
+1. Copy the template: `cp .env.example .env`
+2. Open `.env` and fill in your real credentials.
+3. The application is configured to import this file automatically via `spring.config.import` in `application.properties`.
+
+### Required Variables
+| Variable | Usage | Source |
+| :--- | :--- | :--- |
+| `JWT_SECRET` | Signing authentication tokens | Random 32+ char string |
+| `STRIPE_API_KEY` | Server-side payment processing | Stripe Dashboard (sk_test_...) |
+| `STRIPE_WEBHOOK_SECRET` | Validating Stripe events | Stripe CLI or Dashboard |
+| `SPRING_DATASOURCE_URL` | Database connection string | `jdbc:mysql://localhost:3306/bagygo` |
 
 ### 3. Build & Run
 ```bash
