@@ -85,12 +85,33 @@ BagyGo uses environment variables to manage sensitive information. **Never hardc
 | `STRIPE_WEBHOOK_SECRET` | Validating Stripe events | Stripe CLI or Dashboard |
 | `SPRING_DATASOURCE_URL` | Database connection string | `jdbc:mysql://localhost:3306/bagygo` |
 
-### 3. Build & Run
+
+---
+
+## 🐳 Docker Quickstart
+
+You can run the entire backend (API + Database) using Docker.
+
+### Prerequisites
+- [Docker](https://www.docker.com/products/docker-desktop/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+### 1. Configure Environment
+Ensure you have a `.env` file in the root directory (copy `.env.example` to get started). Docker Compose will automatically inject these variables.
+
+### 2. Run the platform
 ```bash
-./mvnw clean install
-./mvnw spring-boot:run
+docker-compose up --build
 ```
-The API will be available at `http://localhost:8080`.
+- **App**: `http://localhost:8080/api`
+- **DB**: `localhost:3307` (to avoid conflict with local MySQL 3306)
+
+### 3. Stop the platform
+```bash
+docker-compose down
+```
+
+---
 
 ---
 

@@ -1,0 +1,12 @@
+target/
+*.jar
+.mvn/
+mvnw
+mvnw.cmd
+.git/
+.env
+.idea/
+.vscode/
+Dockerfile
+docker-compose.yml
+HELP.md
